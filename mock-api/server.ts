@@ -121,7 +121,7 @@ app.get('/albums/:id', (req: Request, res: Response) => {
  * Offset pagination, matching the real endpoint: ?page= &limit=, limit capped,
  * invalid params falling back to defaults rather than erroring.
  */
-app.get('/albums/:id/photos', (req: Request, res: Response) => {
+app.get('/albums/:id/photos', (req: Request<{ id: string }>, res: Response) => {
   const all = photosByAlbum[req.params.id];
   if (!all) return res.status(404).json({ error: 'Not found' });
 
