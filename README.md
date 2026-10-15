@@ -24,7 +24,7 @@ Switch the logged-in identity: `MOCK_ROLE=photographer npm run mock`
 ## Layout
 
 ```
-app/        Next App Router — /gallery/* is the client product, /studio/* the photographer's
+app/        Next App Router — /portal/* is the client product, /studio/* the photographer's
 types/      entity types copied from the API repo, plus Serialized<T>
 mock-api/   Express stand-in for the real API, with typed fixtures
 ```

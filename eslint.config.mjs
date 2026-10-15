@@ -15,18 +15,18 @@ const eslintConfig = defineConfig([
         {
           zones: [
             {
-              target: "./app/gallery",
+              target: "./app/portal",
               from: "./app/studio",
-              message: "Gallery must not import studio code (D-51). Move shared code to components/ or lib/.",
+              message: "Portal must not import studio code (D-51). Move shared code to components/ or lib/.",
             },
             {
               target: "./app/studio",
-              from: "./app/gallery",
-              message: "Studio must not import gallery code (D-51). Move shared code to components/ or lib/.",
+              from: "./app/portal",
+              message: "Studio must not import portal code (D-51). Move shared code to components/ or lib/.",
             },
             {
               target: ["./components", "./lib"],
-              from: ["./app/gallery", "./app/studio"],
+              from: ["./app/portal", "./app/studio"],
               message: "Shared code must not depend on a product (D-50). Expose a slot instead.",
             },
           ],

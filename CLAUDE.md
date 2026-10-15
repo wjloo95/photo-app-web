@@ -71,7 +71,7 @@ constrain day-to-day work:
 
 ### Routing and products
 
-**D-39 (revised) — Two products, two route trees.** `/gallery/*` is the client
+**D-39 (revised) — Two products, two route trees.** `/portal/*` is the client
 product (responsive, read-only, arrives cold from an email link). `/studio/*` is
 the photographer product (desktop, write-heavy, a work tool). They share almost
 no requirements.
@@ -96,7 +96,8 @@ work around. The collision argument above is what carries this decision now.
 **Naming:** was `/g` and `/app`. Renamed because `/g` is opaque on the thing
 clients see most — a link in an email about their wedding photos — and `/app`
 only ever meant "the logged-in part". `/studio` is what photographers call their
-own business.
+own business. The client side was then `/gallery`, renamed to `/portal` (D-52)
+because clients use it for far more than galleries: messages, forms, planning.
 
 **Held against it:** this bakes role into the URL structure. The justification is
 that `users.role` is a single enum so a user cannot be both — but that is a
@@ -106,13 +107,13 @@ that becomes real, the URL structure needs rework rather than a permission chang
 ```
 /invite/:token                        the only unauthenticated flow
 /login  /signup
-/p/:handle                            RESERVED — public portfolio, post-MVP (D-27)
+/portfolio/:handle                    RESERVED — public portfolio, post-MVP (D-27)
 
-/gallery                              client: album list
-/gallery/albums/:albumId              client: gallery  ← email deep-link target
-/gallery/albums/:albumId/p/:photoId   lightbox (a ROUTE, see D-41)
-/gallery/messages
-/gallery/forms/:responseId
+/portal                              client: album list
+/portal/albums/:albumId              client: gallery  ← email deep-link target
+/portal/albums/:albumId/photos/:photoId lightbox (a ROUTE, see D-41)
+/portal/messages
+/portal/forms/:responseId
 
 /studio                               photographer: dashboard
 /studio/albums
@@ -134,14 +135,14 @@ photographer budget, so a shared bundle is arithmetically impossible.
 **D-49 — One shared root layout, kept lean.** The root holds **only**
 `<html>`, `<body>`, fonts, default metadata, and `globals.css` (resets and
 shared tokens only). **Never in the root:** providers, product CSS, data
-fetches, or any `'use client'` import. Those go in `gallery/layout.tsx` or
+fetches, or any `'use client'` import. Those go in `portal/layout.tsx` or
 `studio/layout.tsx`. Full reasoning in `docs/DECISIONS.md`.
 
 **D-50 — Shared components expose slots, never role flags.** `PhotoGrid` takes
 `onTileClick` / `renderTileOverlay`, not `isStudio` or `selectable`. Products
 plug their features in from their own folder.
 
-**D-51 — Organized by product.** `app/gallery/_components/`,
+**D-51 — Organized by product.** `app/portal/_components/`,
 `app/studio/_components/`, shared UI in `components/`, shared non-UI in `lib/`.
 
 **D-41 — The lightbox is a route, not component state.** Shareable URL, working
@@ -302,7 +303,7 @@ paginated).
 **Not built:** everything in `app/` is still create-next-app default. No API
 client, no route skeleton, no auth, no TanStack Query.
 
-**Next:** API client reading `API_URL` → `/gallery` and `/studio` route skeleton →
+**Next:** API client reading `API_URL` → `/portal` and `/studio` route skeleton →
 server-rendered gallery pulling real data from the mock. Then the client
 gallery slice proper: the D-44 hydration handoff, infinite scroll, aspect-ratio
 skeletons.

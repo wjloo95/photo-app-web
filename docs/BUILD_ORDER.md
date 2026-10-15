@@ -19,9 +19,9 @@ Per phase: write it → run it → break it → fix it → *then* ask for review
 - [ ] API client reading `API_URL` (server) / `NEXT_PUBLIC_API_URL` (browser).
       One typed `apiFetch<T>` with error handling. Where `Serialized<T>` gets
       applied, and where the session header or cookie will eventually attach.
-- [ ] Route skeleton per D-39 — `/gallery/*` and `/studio/*` with layouts, placeholder
+- [x] Route skeleton per D-39 — `/portal/*` and `/studio/*` with layouts, placeholder
       pages, and a shared root layout kept lean (D-49, `docs/DECISIONS.md`).
-- [ ] Prove the chain: one server component fetching `GET /users/me` from the
+- [x] Prove the chain: one server component fetching `GET /users/me` from the
       mock and rendering the name.
 
 **Delegate freely.** No decisions live here.
@@ -61,7 +61,7 @@ virtualized list.
 
 ## Phase 2 — Lightbox as a route
 
-- [ ] **D-41** — `/gallery/albums/:albumId/p/:photoId`. Shareable URL, working back
+- [ ] **D-41** — `/portal/albums/:albumId/photos/:photoId`. Shareable URL, working back
       button.
 - [ ] **Closing it must not refetch the grid behind it.** This is the part that
       goes wrong.
