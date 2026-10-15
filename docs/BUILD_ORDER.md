@@ -20,7 +20,7 @@ Per phase: write it → run it → break it → fix it → *then* ask for review
       One typed `apiFetch<T>` with error handling. Where `Serialized<T>` gets
       applied, and where the session header or cookie will eventually attach.
 - [ ] Route skeleton per D-39 — `/gallery/*` and `/studio/*` with layouts, placeholder
-      pages, and a shared root layout.
+      pages, and a shared root layout kept lean (D-49, `docs/DECISIONS.md`).
 - [ ] Prove the chain: one server component fetching `GET /users/me` from the
       mock and rendering the name.
 
@@ -183,7 +183,6 @@ the reasoning is what gets asked about.
 |---|---|
 | **Styling** | CSS Modules is the scaffold default, not a decision. Settle before Phase 1 gets far — retrofitting is annoying |
 | **Testing** | Recommendation: Vitest + React Testing Library, MSW for API mocks, Playwright for 2–3 flows. The backend's tests were largely AI-generated; **write these by hand** |
-| **Folder structure inside each route tree** | Decide during Phase 0 and then hold it |
 
 ---
 

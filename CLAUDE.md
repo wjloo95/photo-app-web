@@ -58,6 +58,9 @@ see below).
   `../photoApp/src/routes/` rather than guessing.
 - **`docs/BUILD_ORDER.md`** — phases, what to hand-write vs. delegate per phase,
   and which drill precedes each one.
+- **`docs/DECISIONS.md`** — decisions made while building (D-49 onward), each
+  with what was rejected and what is held against it. **Add an entry whenever a
+  design decision is settled in a session.**
 
 ## Architecture decisions
 
@@ -127,6 +130,19 @@ that becomes real, the URL structure needs rework rather than a permission chang
 
 **D-40 — Separate bundles per product.** Client budget is under half the
 photographer budget, so a shared bundle is arithmetically impossible.
+
+**D-49 — One shared root layout, kept lean.** The root holds **only**
+`<html>`, `<body>`, fonts, default metadata, and `globals.css` (resets and
+shared tokens only). **Never in the root:** providers, product CSS, data
+fetches, or any `'use client'` import. Those go in `gallery/layout.tsx` or
+`studio/layout.tsx`. Full reasoning in `docs/DECISIONS.md`.
+
+**D-50 — Shared components expose slots, never role flags.** `PhotoGrid` takes
+`onTileClick` / `renderTileOverlay`, not `isStudio` or `selectable`. Products
+plug their features in from their own folder.
+
+**D-51 — Organized by product.** `app/gallery/_components/`,
+`app/studio/_components/`, shared UI in `components/`, shared non-UI in `lib/`.
 
 **D-41 — The lightbox is a route, not component state.** Shareable URL, working
 back button, state the browser owns instead of React. Closing it must not
@@ -302,4 +318,3 @@ skeletons.
   (D-36/D-37: httpOnly cookie session, Next forwarding the JWT to Express as a
   Bearer token, both behind one nginx origin) assumed a co-deployed API and is
   on hold rather than being designed around a server that does not exist.
-- **Folder structure inside each route tree** — undecided.
