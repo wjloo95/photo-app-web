@@ -1,9 +1,9 @@
-import { ApiUser } from "@/types";
+import type { ApiUser } from "@/types";
 import { Suspense } from "react";
-async function UserName() {
-  const result = await fetch(`${process.env.API_URL}/users/me`);
-  const user: ApiUser = await result.json();
+import { apiFetch } from "@/lib/api/apiFetch";
 
+async function UserName() {
+  const user = await apiFetch<ApiUser>("/users/me");
   return <div>Client Gallery for: {user.name}</div>;
 }
 
