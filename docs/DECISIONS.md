@@ -155,6 +155,158 @@ less evocative than `/gallery/albums/:albumId` was.
 
 ---
 
+## D-53 — `apiFetch` applies `Serialized<T>` itself
+
+**Decided** · 2026-10-14 · Phase 0
+
+```ts
+apiFetch<T>(path): Promise<Serialized<T>>
+```
+
+The caller names any type, entity or wire shape, and always gets back the wire
+shape, with dates as strings. `apiFetch<User>(…)` and `apiFetch<ApiUser>(…)`
+both return `ApiUser`, because `Serialized` of an already-serialized type
+changes nothing.
+
+**Why.** The date bug (dates arrive as ISO strings while TypeScript believes
+they are `Date`) needs only one careless `<User>` to come back. With
+`Serialized` applied inside `apiFetch`, that call gets the correct label, so
+`user.joinedAt.getFullYear()` is a compile error instead of a runtime crash.
+The mistake cannot compile, and nobody has to remember a rule.
+
+**Rejected: return exactly the caller's `T`** (`Promise<T>`). Safe only if
+every caller remembers `ApiUser` over `User`, and one slip reintroduces the
+bug with no warning.
+
+**Held against it.** It is still only a label. `apiFetch` does not check at
+runtime that the response matches `T`, so if the API renames a field both
+versions compile and break at runtime. See D-54.
+
+---
+
+## D-54 — No runtime validation of API responses, until the real API
+
+**Decided** · 2026-10-14 · Phase 0 · **revisit when `API_URL` first points at
+the real backend**
+
+`apiFetch` trusts the response shape and does not check it against a schema.
+
+**Why.** Today drift is impossible. The mock's fixtures are typed against
+`types/`, so a fixture that doesn't match is a compile error, and every
+response is built from the same types `apiFetch` labels it with. Validation
+would only confirm what TypeScript already guarantees. The cost is one schema
+per response shape, and that time is better spent on the gallery, lightbox and
+upload work.
+
+**Rejected (for now): schema validation (Zod/Valibot) on every response.**
+It gives loud, specific errors at the exact fetch that broke, but it has no
+benefit while the only API is the typed mock.
+
+**Held against it.** Once the real API is wired in, a field renamed in the
+backend without a matching `types/` update shows up as quiet broken UI (a
+blank name, `undefined`), not an error.
+
+**When revisiting:** the cheapest useful version is validation on the server
+only (no browser bundle cost), for the endpoints actually in use, added inside
+`apiFetch` so no call site changes.
+
+---
+
+## D-55 — `apiFetch` always throws; the caller decides what is "expected"
+
+**Decided** · 2026-10-14 · Phase 0
+
+`apiFetch` checks `res.ok`. On any failure it throws an `ApiError` carrying the
+HTTP status (and the error body). A network failure, where the server is
+unreachable, propagates as thrown.
+
+The principle is Next's: **expected failures are handled and shown, broken
+things crash to an error page.** The line is drawn at the **call site**, not
+inside `apiFetch`:
+
+- A page that expects a particular failure catches it and converts it. The
+  album page turns a 404 into `notFound()` (an old email link to a deleted
+  album). A Server Action catches a 409 and **returns** `{ error }` to its form
+  ("invite already accepted").
+- Anything not caught falls through to the shared `error.tsx`. **The default is
+  "broken".**
+
+**Why at the call site.** The same status means different things in different
+places. A 404 on `/albums/:id` is normal use, while a 404 on `/users/me` means
+something is broken. `apiFetch` sees only the status code. The caller knows the
+meaning. TanStack Query also expects its fetch function to throw.
+
+**Rejected: `apiFetch` returns error results for 4xx and throws only for
+network/5xx.** Every caller would receive 4xx results it never expected (a 404
+from `/users/me`) and would have to remember to treat them as crashes itself.
+The safe default would be inverted.
+
+**Held against it.** TypeScript does not force anyone to handle an expected
+failure. A page that forgets to catch its 404 shows the generic error page
+instead of "not found". That is wrong, but loudly wrong. Which statuses each
+endpoint can return is documented in `docs/API.md`.
+
+---
+
+## D-56 — `apiFetch` is server-only for now
+
+**Decided** · 2026-10-14 · Phase 0 · **revisit at the first browser-side fetch
+(Phase 1 infinite scroll)**
+
+`apiFetch` runs only on the Next server and reads `API_URL`. Its module imports
+`server-only`, so importing it from a client component is a build error, not a
+silent bug.
+
+**Why.** Today nothing in the browser fetches from the API, and there is no
+real login. The hard part of browser fetching can't come up yet. That hard part
+is that the session cookie is hidden from JavaScript and Express accepts only an
+`Authorization` header, so the browser can't prove who it is directly. The
+answer depends on things Phase 1 and the auth work will settle.
+
+**Rejected (for now): one module that works in both places.** It would mean
+choosing between "browser goes through Next" and "API accepts cookies" before
+either a browser fetch or real auth exists.
+
+**Held against it.** Phase 1 will need a browser path, and `apiFetch`'s shape
+may have to change then. The `ApiError` and `Serialized` behaviour should carry
+over unchanged, and only how the request is sent differs.
+
+**When revisiting:** the two options are (a) browser requests go through Next,
+which attaches the login (a route handler or Server Action), or (b) the
+backend accepts the session cookie (backend gap #7).
+
+---
+
+## D-57 — Next does not cache API responses; the API's cache is the owner
+
+**Decided** · 2026-10-14 · Phase 0
+
+Server-side reads through `apiFetch` do **not** use `'use cache'`. Each request
+asks the API, and the API answers from its own server-side cache (album 15 min,
+photos 5 min, profile 1 h) or the database. Uncached reads sit inside
+`<Suspense>`, so the page shell still ships instantly and the data streams in.
+
+**Why.** One owner per piece of data. The API already caches, and it already
+clears that cache when data changes (a photo added clears the album's photo
+list). A second cache in Next would not hear those clears, so after every
+write the client could see stale data unless every write path also told Next to
+forget. Personal data ("who is logged in") must never sit in a shared cache at
+all. Identical fetches within a single render are still deduplicated by React,
+for free.
+
+**Rejected: `'use cache'` on API reads.** It would put data into the instant
+shell and save the Next→API hop. The cost is a second cache to invalidate on
+every write, and a risk of serving one user's data to another.
+
+**Held against it.** Every page view costs one Next→API round trip, and if the
+API is slow, every view waits (behind a loading fallback).
+
+**Revisit if:** measurement shows the Next→API hop hurting time-to-first-photo,
+or for data that is genuinely public and identical for everyone (the
+post-MVP public portfolio page is the likely first candidate).
+
+---
+
 ## Conventions
 
 - **URL segments are whole words, never abbreviations.** `/portal`, not `/g`.
@@ -178,10 +330,10 @@ less evocative than `/gallery/albums/:albumId` was.
 
 ## Open
 
-- **API client shape.** Where `Serialized<T>` is applied, throw vs. result union,
-  a single module vs. a server/browser split, and `'use cache'` on top of the
-  API's own TTLs. Deliberately deferred until after a plain `/users/me` fetch is
-  working.
+- **API client shape, remaining questions.** Where `Serialized<T>` is applied
+  is settled (D-53), and so are runtime validation (D-54), errors (D-55) and
+  server-only (D-56), and no Next-side cache (D-57). Nothing open; next step is
+  writing it.
 - **Is D-30's "messaging is email, not chat" still true?** D-30 chose polling
   because "four messages a week is email, not chat". D-52 expects clients to
   message a lot while planning a shoot. If that means bursts of back-and-forth,

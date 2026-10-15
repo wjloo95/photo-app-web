@@ -16,7 +16,7 @@ Per phase: write it → run it → break it → fix it → *then* ask for review
 
 **Write by hand:** nothing yet. This is plumbing.
 
-- [ ] API client reading `API_URL` (server) / `NEXT_PUBLIC_API_URL` (browser).
+- [x] API client reading `API_URL` (server) / `NEXT_PUBLIC_API_URL` (browser).
       One typed `apiFetch<T>` with error handling. Where `Serialized<T>` gets
       applied, and where the session header or cookie will eventually attach.
 - [x] Route skeleton per D-39 — `/portal/*` and `/studio/*` with layouts, placeholder
@@ -46,6 +46,8 @@ The highest-value phase. Three decisions land here and all three get asked about
 - [ ] **D-45** — `Serialized<T>` everywhere. No `Date` on the client.
 - [ ] Infinite scroll, pages 2+ client-side. Offset pagination means the page
       shifts if rows change mid-scroll — know that and decide what to do.
+      **First browser-side fetch:** decide how the browser reaches the API
+      (D-56). `apiFetch` is server-only until then.
 - [ ] **D-32** — measure LCP on the first real thumbnail, not the skeleton.
 
 **Delegate:** CSS Module boilerplate, the intersection-observer hook after
@@ -174,6 +176,8 @@ the reasoning is what gets asked about.
   Cloudinary's archive limits verified.
 - **Expiry UI** — countdown banners and the bulk-download prompt. Depends on
   backend gap #2.
+- **Response validation** (D-54) — revisit the moment `API_URL` first points at
+  the real backend. Until then the typed mock cannot drift from `types/`.
 
 ---
 

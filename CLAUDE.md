@@ -61,6 +61,9 @@ see below).
 - **`docs/DECISIONS.md`** — decisions made while building (D-49 onward), each
   with what was rejected and what is held against it. **Add an entry whenever a
   design decision is settled in a session.**
+- **`docs/PRINCIPLES.md`** — the reusable questions behind those decisions, for
+  interview prep. **When a decision is settled, check whether it adds a new
+  principle or a new "Seen here" example, and update this file too.**
 
 ## Architecture decisions
 
