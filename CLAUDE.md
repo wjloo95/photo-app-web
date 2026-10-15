@@ -50,6 +50,15 @@ npm run typecheck
 `MOCK_DELAY_MS` controls artificial latency (default 250ms — do not set it to 0,
 see below).
 
+## Read these too
+
+- **`docs/API.md`** — all 40 endpoints, response shapes, limits, server-side
+  cache TTLs, and the seven known gaps. **Read it before writing any fetch.**
+  If a shape is not described there, read the real handler in
+  `../photoApp/src/routes/` rather than guessing.
+- **`docs/BUILD_ORDER.md`** — phases, what to hand-write vs. delegate per phase,
+  and which drill precedes each one.
+
 ## Architecture decisions
 
 Full log with rationale and tradeoffs lives in the "Photo App" project on
@@ -59,26 +68,61 @@ constrain day-to-day work:
 
 ### Routing and products
 
-**D-39 — Two products, role-carrying URL segments.** `/g/*` is the client
-product (responsive, read-only, arrives cold from an email link). `/app/*` is
+**D-39 (revised) — Two products, two route trees.** `/gallery/*` is the client
+product (responsive, read-only, arrives cold from an email link). `/studio/*` is
 the photographer product (desktop, write-heavy, a work tool). They share almost
 no requirements.
 
+**Why separate trees:** `/albums/:id` would otherwise mean two completely
+different pages depending on who is asking — the photographer's view has bulk
+select, upload, thumbnail setting and client assignment; the client's is a
+read-only gallery with download. One shared route tree branching on role is how
+you end up with `{isPhotographer && <BulkActions />}` scattered through
+components, a layout conditional in six places, and both products in one bundle
+because the role check is a runtime branch rather than a build-time boundary.
+Separate trees make them simply different files that happen to fetch the same
+resource.
+
+**A reason that no longer applies:** this originally also solved the startup
+round trip from the backend's D-26 (the frontend resolves its own identity via
+`GET /users/me`, so it does not know the role until that returns) — the URL would
+tell the app which shell to render first. D-35 chose server rendering, which
+resolves identity during the HTML response, so there is no longer a waterfall to
+work around. The collision argument above is what carries this decision now.
+
+**Naming:** was `/g` and `/app`. Renamed because `/g` is opaque on the thing
+clients see most — a link in an email about their wedding photos — and `/app`
+only ever meant "the logged-in part". `/studio` is what photographers call their
+own business.
+
+**Held against it:** this bakes role into the URL structure. The justification is
+that `users.role` is a single enum so a user cannot be both — but that is a
+schema constraint, not a product truth. Photographers hire photographers. If
+that becomes real, the URL structure needs rework rather than a permission change.
+
 ```
-/invite/:token          the only unauthenticated flow
-/g                      client: album list
-/g/albums/:albumId      client: gallery          ← email deep-link target
-/g/albums/:albumId/p/:photoId   lightbox (a ROUTE, see D-41)
-/g/messages
-/g/forms/:responseId
-/app                    photographer: dashboard
-/app/albums  /app/albums/:id  /app/albums/:id/upload
-/app/clients /app/clients/:id
-/app/invites
-/app/messages /app/messages/:conversationId
-/app/templates /app/templates/:id
-/app/settings
-/p/:handle              RESERVED — public portfolio, post-MVP (D-27)
+/invite/:token                        the only unauthenticated flow
+/login  /signup
+/p/:handle                            RESERVED — public portfolio, post-MVP (D-27)
+
+/gallery                              client: album list
+/gallery/albums/:albumId              client: gallery  ← email deep-link target
+/gallery/albums/:albumId/p/:photoId   lightbox (a ROUTE, see D-41)
+/gallery/messages
+/gallery/forms/:responseId
+
+/studio                               photographer: dashboard
+/studio/albums
+/studio/albums/:id
+/studio/albums/:id/upload
+/studio/clients
+/studio/clients/:id
+/studio/invites
+/studio/messages
+/studio/messages/:conversationId
+/studio/templates
+/studio/templates/:id
+/studio/settings
 ```
 
 **D-40 — Separate bundles per product.** Client budget is under half the
@@ -242,7 +286,7 @@ paginated).
 **Not built:** everything in `app/` is still create-next-app default. No API
 client, no route skeleton, no auth, no TanStack Query.
 
-**Next:** API client reading `API_URL` → `/g` and `/app` route skeleton →
+**Next:** API client reading `API_URL` → `/gallery` and `/studio` route skeleton →
 server-rendered gallery pulling real data from the mock. Then the client
 gallery slice proper: the D-44 hydration handoff, infinite scroll, aspect-ratio
 skeletons.
